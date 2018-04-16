@@ -6,48 +6,66 @@ from TreeNode import TreeNode as Node
 class DecisionTree:
     __level = 0
     __threshold = 0
-    __num_label = 0
     __table = []
+    __label_table = []
     __label = []
     __tree = []
 
-    def __init__(self):
-        dataSet = xlrd.open_workbook("data_set.xls")
-        sheet = dataSet.sheets()
+    def __init__(self, level, threshold, num_label, file):
+        self.__level = level
+        self.__threshold = threshold
+        data = xlrd.open_workbook(file)
+        sheet = data.sheets()
 
-        # read file in to table
-        for i in range(0, sheet[0].ncols):
+        # read file in to input table
+        for col in range(0, sheet[0].ncols - num_label):
             att = []
-            for j in range(0, sheet[0].nrows):
-                att.append(sheet[0].cell(j, i).value)
+            for row in range(0, sheet[0].nrows):
+                att.append(sheet[0].cell(row, col).value)
             self.__table.append(att)
 
-        self.__label = self.classifiedAtt(sheet[0].ncols - 1, self.__table)
-        self.__root = Node(None, None, None)
+        # read file in to label table
+        for col in range(len(self.__table) - num_label, len(self.__table)):
+            att = []
+            for row in range(0, sheet[0].nrows):
+                att.append(sheet[0].cell(row, col).value)
+            self.__label_table.append(att)
+
+        for att in range(0, num_label):
+            self.__label.clear()
+            t = copy.copy(self.__table)
+            t.append(self.__label_table[att])
+            self.__label = self.__classifiedAtt__(len(t) - 1, t)
+            root = Node(None, None, None)
+            self.__generateTree__(0, root, t)
+            self.__tree.append(root)
+            print("tree is create " + str(att))
         return
 
-    def classifiedAtt(self, att, table):
+    @staticmethod
+    def __classifiedAtt__(att, table):
         temp = copy.copy(table[att])
         temp.pop(0)
-        sendAtt = []
-        sendAtt.append(temp[0])
+        send_att = []
+        send_att.append(temp[0])
         while True:
             if len(temp) == 0:
                 break
             count = 0
             while True:
-                if sendAtt[count] == temp[0]:
+                if send_att[count] == temp[0]:
                     temp.pop(0)
                     break
-                if count == len(sendAtt) - 1:
-                    sendAtt.append(temp[0])
+                if count == len(send_att) - 1:
+                    send_att.append(temp[0])
                     temp.pop(0)
                     break
                 count += 1
-        return sendAtt
+        return send_att
 
-    def info(self, attArr):
-        arr = copy.copy(attArr)
+    @staticmethod
+    def __info__(att_arr):
+        arr = copy.copy(att_arr)
         result = 0
         sum = 0
 
@@ -59,135 +77,121 @@ class DecisionTree:
             result += (-value / sum * math.log(value / sum, 2))
         return result
 
-    def attCount(self, att, x, table, word):
+    def __attCount__(self, col, x, table, word):
         temp = copy.copy(table)
         if word == "nl":
             count = 0
-            for i in range(1, len(temp[att])):
-                if x == temp[att][i]:
+            for row in range(1, len(temp[col])):
+                if x == temp[col][row]:
                     count += 1
             return count
 
         if word == "l":
-            countList = []
-            for i in range(len(self.__label)):
-                countList.append(0)
+            count_list = []
+            for time in range(len(self.__label)):
+                count_list.append(0)
 
-            for i in range(0, len(temp[att])):
-                if x == temp[att][i]:
-                    for j in range(0, len(self.__label)):
-                        if self.__label[j] == temp[len(temp) - 1][i]:
-                            countList[j] += 1
+            for row in range(0, len(temp[col])):
+                if x == temp[col][row]:
+                    for index in range(0, len(self.__label)):
+                        if self.__label[index] == temp[len(temp) - 1][row]:
+                            count_list[index] += 1
                             break
-            return countList
+            return count_list
 
-    def infoAtt(self, att, table):
+    def __infoAtt__(self, att, table):
         result = 0
-        attlist = self.classifiedAtt(att, table)
+        attlist = self.__classifiedAtt__(att, table)
         for value in attlist:
-            result += (self.attCount(att, value, table, "nl") / (len(table[0]) - 1)) * self.info(
-                self.attCount(att, value, table, "l"))
+            prob = self.__attCount__(att, value, table, "nl") / (len(table[0]) - 1)
+            info = self.__info__(self.__attCount__(att, value, table, "l"))
+            result += prob * info
         return result
 
-    def gainAtt(self, attlabel, att, table):
-        labelarr = []
-        for i in self.__label:
-            labelarr.append(tree.attCount(attlabel, i, table, "nl"))
-        return self.info(labelarr) - self.infoAtt(att, table)
+    def __gainAtt__(self, col_label, att, table):
+        label_arr = []
+        for index in self.__label:
+            label_arr.append(self.__attCount__(col_label, index, table, "nl"))
+        return self.__info__(label_arr) - self.__infoAtt__(att, table)
 
-    def croptable(self, col, row, table):
-        sendtable = []
+    @staticmethod
+    def __cropTable__(att, value, table):
+        send_table = []
         for time in range(len(table)):
             arr = []
-            sendtable.append(arr)
-            sendtable[time].append(table[time][0])
+            send_table.append(arr)
+            send_table[time].append(table[time][0])
 
-        for j in range(len(table[col])):
-            if table[col][j] == row:
-                for i in range(len(table)):
-                    sendtable[i].append(table[i][j])
-        sendtable.pop(col)
-        return sendtable
+        for row in range(len(table[att])):
+            if table[att][row] == value:
+                for col in range(len(table)):
+                    send_table[col].append(table[col][row])
+        send_table.pop(att)
+        return send_table
 
-    def generateTree(self, curlevel, node, table):
+    def __generateTree__(self, cur_level, cur_node, table):
         # root case
-        if node.parent == None:
-            gainmax = self.__threshold
-            attmax = -1
+        if cur_node.parent == None:
+            gain_max = self.__threshold
+            att_max = -1
             for i in range(0, len(table) - 1):
-                gain = self.gainAtt(len(table) - 1, i, table)
-                if gainmax < gain:
+                gain = self.__gainAtt__(len(table) - 1, i, table)
+                if gain_max < gain:
                     gainmax = gain
-                    attmax = i
-            node.parent = node
-            node.att_split = table[attmax][0]
-            pathlist = self.classifiedAtt(attmax, table)
-            for i in pathlist:
-                cnode = Node(node, None, i)
-                t = self.croptable(attmax, i, table)
-                node.child.append(cnode)
-                self.generateTree(curlevel + 1, cnode, t)
+                    att_max = i
+            cur_node.parent = cur_node
+            cur_node.att_split = table[att_max][0]
+            path_list = self.__classifiedAtt__(att_max, table)
+            for path in path_list:
+                child_node = Node(cur_node, None, path)
+                t = self.__cropTable__(att_max, path, table)
+                cur_node.child.append(child_node)
+                self.__generateTree__(cur_level + 1, child_node, t)
             return
         # general case
-        elif curlevel <= self.__level and len(table) > 1:
-            gainmax = self.__threshold
-            attmax = -1
-            for i in range(0, len(table) - 1):
-                gain = self.gainAtt(len(table) - 1, i, table)  # chain error
-                if gainmax < gain:
-                    gainmax = gain
-                    attmax = i
-            node.att_split = table[attmax][0]
-            if gainmax == self.__threshold or table[attmax][0] == "Iris class":  # label case
-                max = 0
+        elif cur_level <= self.__level and len(table) > 1:
+            gain_max = self.__threshold
+            att_max = -1
+            for att in range(0, len(table) - 1):
+                gain = self.__gainAtt__(len(table) - 1, att, table)  # chain error
+                if gain_max < gain:
+                    gain_max = gain
+                    att_max = att
+            cur_node.att_split = table[att_max][0]
+            if gain_max == self.__threshold:  # label case
+                max_count = 0
                 label = None
-                for i in self.__label:
-                    temp = self.attCount(len(table) - 1, i, table, "nl")
-                    if max < temp:
-                        max = temp
-                        label = i
-                node.label = label
+                for value in self.__label:
+                    temp = self.__attCount__(len(table) - 1, value, table, "nl")
+                    if max_count < temp:
+                        max_count = temp
+                        label = value
+                cur_node.label = label
                 return
             else:
-                pathlist = self.classifiedAtt(attmax, table)
-                for i in pathlist:
-                    cnode = treeNode(node, None, i)
-                    t = self.croptable(attmax, i, table)
-                    node.child.append(cnode)
-                    self.generateTree(curlevel + 1, cnode, t)
+                path_list = self.__classifiedAtt__(att_max, table)
+                for path in path_list:
+                    child_node = Node(cur_node, None, path)
+                    t = self.__cropTable__(att_max, path, table)
+                    cur_node.child.append(child_node)
+                    self.__generateTree__(cur_level + 1, child_node, t)
                 return
         # break case
         else:
-            max = 0
+            max_count = 0
             label = None
-            for i in self.__label:
-                temp = self.attCount(len(table) - 1, i, table, "nl")
-                if max <= temp:
-                    max = temp
-                    label = i
-            node.label = label
+            for value in self.__label:
+                temp = self.__attCount__(len(table) - 1, value, table, "nl")
+                if max_count < temp:
+                    max_count = temp
+                    label = value
+            cur_node.label = label
             return
 
-    def getroot(self):
-        return self.__root
-
-    def gettable(self):
-        return self.__table
+    def get_forest(self):
+        return self.__tree
 
 
-tree = DecisionTree()
-tree.generateTree(0, tree.getroot(), tree.gettable())
-node = tree.getroot()
-print(node.parent)
-print(node)
-print(node.att_split)
-print(node.attr_split_value)
-print(node.child)
-print("\n")
-for i in tree.getroot().child:
-    print(i)
-    print(i.parent)
-    print(i.attr_split_value)
-    print(i.att_split)
-    print(i.label)
-    print("\n")
+
+tree = DecisionTree(5, 0, 19, "data_set.xls")
+print("end")
