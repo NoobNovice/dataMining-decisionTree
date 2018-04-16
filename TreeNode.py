@@ -1,6 +1,5 @@
 class TreeNode:
-    root_label = None
-    child = []
+    child = None
     parent = None
     att_split = None
     attr_split_value = None

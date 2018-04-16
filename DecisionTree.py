@@ -131,13 +131,14 @@ class DecisionTree:
 
     def __generateTree__(self, cur_level, cur_node, table):
         # root case
+        c_arr = []
         if cur_node.parent == None:
             gain_max = self.__threshold
             att_max = -1
             for i in range(0, len(table) - 1):
                 gain = self.__gainAtt__(len(table) - 1, i, table)
                 if gain_max < gain:
-                    gainmax = gain
+                    gain_max = gain
                     att_max = i
             cur_node.parent = cur_node
             cur_node.att_split = table[att_max][0]
@@ -145,8 +146,9 @@ class DecisionTree:
             for path in path_list:
                 child_node = Node(cur_node, None, path)
                 t = self.__cropTable__(att_max, path, table)
-                cur_node.child.append(child_node)
+                c_arr.append(child_node)
                 self.__generateTree__(cur_level + 1, child_node, t)
+            cur_node.child = c_arr
             return
         # general case
         elif cur_level <= self.__level and len(table) > 1:
@@ -173,8 +175,9 @@ class DecisionTree:
                 for path in path_list:
                     child_node = Node(cur_node, None, path)
                     t = self.__cropTable__(att_max, path, table)
-                    cur_node.child.append(child_node)
+                    c_arr.append(child_node)
                     self.__generateTree__(cur_level + 1, child_node, t)
+                cur_node.child = c_arr
                 return
         # break case
         else:
@@ -194,4 +197,11 @@ class DecisionTree:
 
 
 tree = DecisionTree(5, 0, 19, "data_set.xls")
-print("end")
+forest = tree.get_forest()
+print("\n")
+print(forest[0].parent)
+print(forest[0])
+print(len(forest[0].child))
+print(forest[0].att_split)
+print(forest[0].attr_split_value)
+
