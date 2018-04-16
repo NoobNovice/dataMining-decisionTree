@@ -196,12 +196,13 @@ class DecisionTree:
 
 
 
-tree = DecisionTree(5, 0, 19, "data_set.xls")
+tree = DecisionTree(5, 0.005, 19, "data_set.xls")
 forest = tree.get_forest()
 print("\n")
 print(forest[0].parent)
 print(forest[0])
-print(len(forest[0].child))
-print(forest[0].att_split)
-print(forest[0].attr_split_value)
+for i in range(0, len(forest)):
+    print(len(forest[i].child))
+    print(forest[i].att_split)
+    print(forest[i].attr_split_value)
 
