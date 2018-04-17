@@ -25,13 +25,13 @@ class DecisionTree:
             self.__table.append(att)
 
         # read file in to label table
-        for col in range(len(self.__table) - num_label, len(self.__table)):
+        for col in range(sheet[0].ncols - num_label, sheet[0].ncols):
             att = []
             for row in range(0, sheet[0].nrows):
                 att.append(sheet[0].cell(row, col).value)
             self.__label_table.append(att)
 
-        for att in range(0, num_label):
+        for att in range(0, 1):
             self.__label.clear()
             t = copy.copy(self.__table)
             t.append(self.__label_table[att])
@@ -70,8 +70,8 @@ class DecisionTree:
         sum = 0
 
         for temp in range(len(arr)):
-            arr[temp] += 1
             sum += arr[temp]
+            arr[temp] += 1
 
         for value in arr:
             result += (-value / sum * math.log(value / sum, 2))
@@ -189,20 +189,32 @@ class DecisionTree:
                     max_count = temp
                     label = value
             cur_node.label = label
+            cur_node.att_split = table[len(table) - 1][0]
             return
 
     def get_forest(self):
         return self.__tree
 
+    def prediction(self, arr2D_input, view_node):
+        if view_node.label != None:
+            return view_node.label
+        else:
+            for i in range(0, len(arr2D_input) - 1):
+                if view_node.att_split == arr2D_input[i][0]:
+                    for j in range(0, len(view_node.child)):
+                        if view_node.child[j].att_split_value == arr2D_input[i][1]:
+                            return self.prediction(arr2D_input, view_node.child[j])
+        return None
 
-
-tree = DecisionTree(5, 0.005, 19, "data_set.xls")
-forest = tree.get_forest()
-print("\n")
-print(forest[0].parent)
-print(forest[0])
-for i in range(0, len(forest)):
-    print(len(forest[i].child))
-    print(forest[i].att_split)
-    print(forest[i].attr_split_value)
-
+    def show_tree(self, view_node):
+        print(view_node)
+        print(view_node.parent.att_split)
+        print(view_node.att_split_value)
+        print(view_node.att_split)
+        if view_node.child != None:
+            print("num child " + str(len(view_node.child)))
+            for x in view_node.child:
+                self.show_tree(x)
+        else:
+            print(view_node.label)
+        return

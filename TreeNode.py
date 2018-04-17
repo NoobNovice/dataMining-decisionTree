@@ -8,5 +8,5 @@ class TreeNode:
     def __init__(self, par, att, att_value):
         self.parent = par
         self.att_split = att
-        self.attr_split_value = att_value
+        self.att_split_value = att_value
         return
