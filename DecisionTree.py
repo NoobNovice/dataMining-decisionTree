@@ -7,39 +7,26 @@ class DecisionTree:
     __level = 0
     __threshold = 0
     __table = []
-    __label_table = []
     __label = []
-    __tree = []
+    __root = None
 
-    def __init__(self, level, threshold, num_label, file):
+    def __init__(self, level, threshold):
         self.__level = level
         self.__threshold = threshold
-        data = xlrd.open_workbook(file)
+        data = xlrd.open_workbook("data_set.xls")
         sheet = data.sheets()
 
         # read file in to input table
-        for col in range(0, sheet[0].ncols - num_label):
+        for col in range(0, sheet[0].ncols - 18):
             att = []
             for row in range(0, sheet[0].nrows):
                 att.append(sheet[0].cell(row, col).value)
             self.__table.append(att)
 
-        # read file in to label table
-        for col in range(sheet[0].ncols - num_label, sheet[0].ncols):
-            att = []
-            for row in range(0, sheet[0].nrows):
-                att.append(sheet[0].cell(row, col).value)
-            self.__label_table.append(att)
-
-        for att in range(0, 1):
-            self.__label.clear()
-            t = copy.copy(self.__table)
-            t.append(self.__label_table[att])
-            self.__label = self.__classifiedAtt__(len(t) - 1, t)
-            root = Node(None, None, None)
-            self.__generateTree__(0, root, t)
-            self.__tree.append(root)
-            print("tree is create " + str(att))
+        self.__label = self.__classifiedAtt__(len(self.__table) - 1, self.__table)
+        self.__root = Node(None, None, None)
+        self.__generateTree__(0, self.__root, self.__table)
+        print("tree is create")
         return
 
     @staticmethod
@@ -192,8 +179,8 @@ class DecisionTree:
             cur_node.att_split = table[len(table) - 1][0]
             return
 
-    def get_forest(self):
-        return self.__tree
+    def get_root(self):
+        return self.__root
 
     def prediction(self, arr2D_input, view_node):
         if view_node.label != None:

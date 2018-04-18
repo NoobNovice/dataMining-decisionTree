@@ -1,8 +1,8 @@
 import xlrd
 from DecisionTree import DecisionTree as Dt
 
-forest = Dt(5, 0, 19, "data_set.xls")
-tree_arr = forest.get_forest()
+tree = Dt(5, 0)
+root = tree.get_root()
 
 data = xlrd.open_workbook("data_set.xls")
 sheet = data.sheets()
@@ -17,7 +17,7 @@ for row in range(1, sheet[0].nrows):
         att.append(sheet[0].cell(0, col).value)
         att.append(sheet[0].cell(row, col).value)
         test_case.append(att)
-    result = forest.prediction(test_case, tree_arr[0])
+    result = tree.prediction(test_case, root)
     print(result)
     print(test_case[12][1])
     if result == test_case[12][1]:
